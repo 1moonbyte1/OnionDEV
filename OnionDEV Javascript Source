@@ -1,0 +1,391 @@
+(() => {
+  if (window.OnionDEV) {
+    window.OnionDEV.destroy();
+    return;
+  }
+
+  let selected = null;
+  let hovered = null;
+  let locked = false;
+
+  const css = document.createElement("style");
+  const panel = document.createElement("div");
+
+  const tag = (element) => {
+    return element.tagName ? element.tagName.toLowerCase() : "unknown";
+  };
+
+  const copy = (text) => {
+    if (navigator.clipboard) {
+      navigator.clipboard.writeText(text);
+    }
+  };
+
+  const getPath = (element) => {
+    const parts = [];
+
+    while (element && element.nodeType === 1 && element !== document.body) {
+      let name = tag(element);
+
+      if (element.id) {
+        name += `#${element.id}`;
+        parts.unshift(name);
+        break;
+      }
+
+      const classes = [...element.classList].slice(0, 2).join(".");
+
+      if (classes) {
+        name += `.${classes}`;
+      }
+
+      const sameTags = [...element.parentNode.children].filter(
+        (child) => child.tagName === element.tagName
+      );
+
+      const index = sameTags.indexOf(element) + 1;
+
+      if (index > 1) {
+        name += `:nth-of-type(${index})`;
+      }
+
+      parts.unshift(name);
+      element = element.parentNode;
+    }
+
+    return parts.join(" > ");
+  };
+
+  css.textContent = `
+    #oniondev {
+      position: fixed;
+      right: 18px;
+      bottom: 18px;
+      width: 390px;
+      max-height: 82vh;
+      z-index: 2147483647;
+      background: linear-gradient(145deg, rgba(12,12,16,.94), rgba(54,16,82,.9));
+      color: #fff;
+      font: 13px Inter, Segoe UI, Arial, sans-serif;
+      border: 1px solid rgba(255,255,255,.16);
+      border-radius: 22px;
+      box-shadow: 0 24px 80px #000b;
+      backdrop-filter: blur(18px);
+      overflow: hidden;
+    }
+
+    #oniondev * {
+      box-sizing: border-box;
+    }
+
+    #oniondev header {
+      padding: 14px 16px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: rgba(255,255,255,.08);
+      border-bottom: 1px solid rgba(255,255,255,.1);
+    }
+
+    #oniondev h1 {
+      margin: 0;
+      font-size: 14px;
+      letter-spacing: .08em;
+    }
+
+    #oniondev h1 b {
+      color: #c084fc;
+    }
+
+    #oniondev .x {
+      display: flex;
+      gap: 6px;
+    }
+
+    #oniondev button {
+      background: rgba(255,255,255,.11);
+      color: white;
+      border: 1px solid rgba(255,255,255,.16);
+      border-radius: 10px;
+      padding: 7px 9px;
+      font-size: 12px;
+      cursor: pointer;
+    }
+
+    #oniondev button:hover {
+      background: rgba(192,132,252,.25);
+    }
+
+    #oniondev main {
+      padding: 14px 16px;
+      overflow: auto;
+      max-height: calc(82vh - 56px);
+    }
+
+    #oniondev .card {
+      background: rgba(255,255,255,.07);
+      border: 1px solid rgba(255,255,255,.1);
+      border-radius: 16px;
+      padding: 12px;
+      margin-bottom: 10px;
+    }
+
+    #oniondev .k {
+      color: #c4b5fd;
+      font-weight: 700;
+    }
+
+    #oniondev .v {
+      word-break: break-word;
+      color: #f7f7f7;
+    }
+
+    #oniondev code {
+      display: block;
+      background: rgba(0,0,0,.25);
+      border-radius: 10px;
+      padding: 8px;
+      margin-top: 6px;
+      white-space: pre-wrap;
+      word-break: break-word;
+      color: #fff;
+    }
+
+    #oniondev input {
+      width: 100%;
+      margin-top: 7px;
+      padding: 8px;
+      border-radius: 10px;
+      border: 1px solid rgba(255,255,255,.14);
+      background: rgba(0,0,0,.25);
+      color: white;
+    }
+
+    #oniondev .grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 7px;
+      margin-top: 8px;
+    }
+
+    .onion-hover {
+      outline: 2px dashed #c084fc !important;
+      outline-offset: 2px !important;
+    }
+
+    .onion-selected {
+      outline: 3px solid #a855f7 !important;
+      outline-offset: 2px !important;
+    }
+  `;
+
+  panel.id = "oniondev";
+
+  panel.innerHTML = `
+    <header>
+      <h1>🧅 Onion<b>DEV</b></h1>
+      <div class="x">
+        <button data-act="pick">Pick</button>
+        <button data-act="close">Close</button>
+      </div>
+    </header>
+
+    <main>
+      <div class="card">Click any element to inspect it.</div>
+    </main>
+  `;
+
+  document.documentElement.append(css, panel);
+
+  const main = panel.querySelector("main");
+
+  function render(element) {
+    if (!element) return;
+
+    const rect = element.getBoundingClientRect();
+    const styles = getComputedStyle(element);
+    const text = (element.innerText || element.value || "").trim();
+
+    main.innerHTML = `
+      <div class="card">
+        <div class="k">Selected</div>
+        <code>${tag(element)}${element.id ? `#${element.id}` : ""}${
+      element.className && typeof element.className === "string"
+        ? `.${element.className.trim().replace(/\s+/g, ".")}`
+        : ""
+    }</code>
+      </div>
+
+      <div class="card">
+        <div class="k">DOM Path</div>
+        <code>${getPath(element)}</code>
+
+        <div class="grid">
+          <button data-act="copyPath">Copy path</button>
+          <button data-act="copyHTML">Copy HTML</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="k">Layout</div>
+        <div class="v">
+          Size: ${Math.round(rect.width)} × ${Math.round(rect.height)}<br>
+          Position: ${Math.round(rect.x)}, ${Math.round(rect.y)}<br>
+          Display: ${styles.display}<br>
+          Position CSS: ${styles.position}<br>
+          Z-index: ${styles.zIndex}
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="k">Style</div>
+        <div class="v">
+          Color: ${styles.color}<br>
+          Background: ${styles.backgroundColor}<br>
+          Font: ${styles.fontSize} ${styles.fontFamily}<br>
+          Margin: ${styles.margin}<br>
+          Padding: ${styles.padding}<br>
+          Border radius: ${styles.borderRadius}
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="k">Text editor</div>
+        <input data-act="textInput" value="${text
+          .replace(/"/g, "&quot;")
+          .slice(0, 300)}">
+
+        <div class="grid">
+          <button data-act="applyText">Apply text</button>
+          <button data-act="contentEdit">Toggle edit mode</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="k">Tools</div>
+
+        <div class="grid">
+          <button data-act="hide">Hide</button>
+          <button data-act="show">Show</button>
+          <button data-act="delete">Delete</button>
+          <button data-act="lock">Lock select</button>
+        </div>
+      </div>
+    `;
+  }
+
+  function select(element) {
+    if (selected) {
+      selected.classList.remove("onion-selected");
+    }
+
+    selected = element;
+    selected.classList.add("onion-selected");
+    render(selected);
+  }
+
+  function handleHover(event) {
+    if (locked || panel.contains(event.target)) return;
+
+    if (hovered) {
+      hovered.classList.remove("onion-hover");
+    }
+
+    hovered = event.target;
+    hovered.classList.add("onion-hover");
+  }
+
+  function handleClick(event) {
+    if (panel.contains(event.target)) return;
+
+    event.preventDefault();
+    event.stopPropagation();
+
+    if (!locked) {
+      select(event.target);
+    }
+  }
+
+  function handlePanelAction(event) {
+    const action = event.target.dataset.act;
+
+    if (!action) return;
+
+    if (action === "close") {
+      window.OnionDEV.destroy();
+      return;
+    }
+
+    if (action === "pick") {
+      locked = false;
+      return;
+    }
+
+    if (!selected) return;
+
+    if (action === "copyPath") {
+      copy(getPath(selected));
+    }
+
+    if (action === "copyHTML") {
+      copy(selected.outerHTML);
+    }
+
+    if (action === "hide") {
+      selected.style.visibility = "hidden";
+    }
+
+    if (action === "show") {
+      selected.style.visibility = "visible";
+    }
+
+    if (action === "delete") {
+      const elementToDelete = selected;
+      selected = null;
+      elementToDelete.remove();
+
+      main.innerHTML = `
+        <div class="card">Element deleted.</div>
+      `;
+    }
+
+    if (action === "lock") {
+      locked = !locked;
+    }
+
+    if (action === "contentEdit") {
+      selected.contentEditable =
+        selected.contentEditable === "true" ? "false" : "true";
+    }
+
+    if (action === "applyText") {
+      const input = panel.querySelector("[data-act='textInput']");
+      selected.innerText = input.value;
+      render(selected);
+    }
+  }
+
+  document.addEventListener("mouseover", handleHover, true);
+  document.addEventListener("click", handleClick, true);
+  panel.addEventListener("click", handlePanelAction);
+
+  window.OnionDEV = {
+    destroy() {
+      document.removeEventListener("mouseover", handleHover, true);
+      document.removeEventListener("click", handleClick, true);
+
+      if (selected) {
+        selected.classList.remove("onion-selected");
+      }
+
+      if (hovered) {
+        hovered.classList.remove("onion-hover");
+      }
+
+      panel.remove();
+      css.remove();
+
+      delete window.OnionDEV;
+    },
+  };
+})();
