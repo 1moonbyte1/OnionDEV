@@ -1,6 +1,6 @@
 # 🧅 OnionDEV
 
-OnionDEV is a lightweight DevTools-style bookmarklet that lets you inspect, edit and experiment with webpages directly in the browser — no extensions required.
+OnionDEV is a lightweight DevTools-style bookmarklet that lets you inspect, edit and experiment with webpages directly in the browser no extensions required.
 
 ## Features
 
