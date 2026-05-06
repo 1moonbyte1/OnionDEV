@@ -1,2 +1,15 @@
-# OnionDEV
-🧅 OnionDEV is a lightweight DevTools-style bookmarklet built in pure JavaScript.   Inspect elements, view styles, edit text live, copy HTML, and experiment with webpages through a clean glass-inspired UI — all without extensions or setup.  Designed to be fast, portable, minimal, and usable on almost any website.
+# 🧅 OnionDEV
+
+OnionDEV is a lightweight DevTools-style bookmarklet that lets you inspect, edit and experiment with webpages directly in the browser — no extensions required.
+
+## Features
+
+- Element picker
+- CSS inspector
+- Live text editing
+- DOM path viewer
+- Copy HTML
+- Hide/delete elements
+- Glassmorphism UI
+- Pure JavaScript
+- Lightweight and portable
